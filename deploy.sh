@@ -58,7 +58,12 @@ if aws s3api head-bucket --bucket "$S3_BUCKET" 2>/dev/null; then
     echo "✓ S3 bucket exists"
 else
     echo "Creating S3 bucket..."
-    aws s3api create-bucket --bucket "$S3_BUCKET" --region "$AWS_REGION"
+    if [ "$AWS_REGION" = "us-east-1" ]; then
+        aws s3api create-bucket --bucket "$S3_BUCKET" --region "$AWS_REGION"
+    else
+        aws s3api create-bucket --bucket "$S3_BUCKET" --region "$AWS_REGION" \
+            --create-bucket-configuration LocationConstraint="$AWS_REGION"
+    fi
     echo "✓ S3 bucket created"
 fi
 

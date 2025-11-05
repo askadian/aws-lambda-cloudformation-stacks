@@ -67,7 +67,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - s3:GetObject
-                Resource: !Sub 'arn:aws:s3:::${S3Bucket}/*'
+                Resource: !Sub 'arn:aws:s3:::${S3Bucket}/${S3Key}'
       Tags:
         - Key: Name
           Value: !Sub '${FunctionName}-DeploymentRole'

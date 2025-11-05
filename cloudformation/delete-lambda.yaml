@@ -53,6 +53,8 @@ Resources:
                   - iam:GetRole
                   - logs:DeleteLogGroup
                   - logs:DescribeLogGroups
+                # Note: Resource '*' is required here because the cleanup function
+                # needs to discover and delete resources by name at runtime
                 Resource: '*'
 
   CleanupFunction:
