@@ -1,0 +1,100 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation template to create a new Python Lambda function'
+
+Parameters:
+  FunctionName:
+    Type: String
+    Description: Name of the Lambda function
+    Default: MyPythonLambdaFunction
+
+  Runtime:
+    Type: String
+    Description: Python runtime version
+    Default: python3.11
+    AllowedValues:
+      - python3.9
+      - python3.10
+      - python3.11
+      - python3.12
+
+  Handler:
+    Type: String
+    Description: Lambda function handler
+    Default: lambda_function.lambda_handler
+
+  MemorySize:
+    Type: Number
+    Description: Memory size in MB
+    Default: 128
+    MinValue: 128
+    MaxValue: 10240
+
+  Timeout:
+    Type: Number
+    Description: Timeout in seconds
+    Default: 30
+    MinValue: 1
+    MaxValue: 900
+
+Resources:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${FunctionName}-ExecutionRole'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Tags:
+        - Key: Name
+          Value: !Sub '${FunctionName}-ExecutionRole'
+
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref FunctionName
+      Runtime: !Ref Runtime
+      Handler: !Ref Handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      MemorySize: !Ref MemorySize
+      Timeout: !Ref Timeout
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+              return {
+                  'statusCode': 200,
+                  'body': 'Hello World! This is a placeholder function.'
+              }
+      Tags:
+        - Key: Name
+          Value: !Ref FunctionName
+
+  LambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${FunctionName}'
+      RetentionInDays: 7
+
+Outputs:
+  LambdaFunctionArn:
+    Description: ARN of the Lambda function
+    Value: !GetAtt LambdaFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-LambdaArn'
+
+  LambdaFunctionName:
+    Description: Name of the Lambda function
+    Value: !Ref LambdaFunction
+    Export:
+      Name: !Sub '${AWS::StackName}-LambdaName'
+
+  LambdaExecutionRoleArn:
+    Description: ARN of the Lambda execution role
+    Value: !GetAtt LambdaExecutionRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-RoleArn'
