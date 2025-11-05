@@ -41,6 +41,7 @@ Before using this repository, you need:
 │   ├── lambda_function.py          # Hello World Python Lambda function
 │   └── requirements.txt            # Python dependencies
 ├── .gitignore
+├── deploy.sh                       # Manual deployment script
 └── README.md
 ```
 
@@ -147,12 +148,24 @@ git commit -m "Update Lambda function"
 git push origin main
 ```
 
-**Manual Deployment:**
+**Manual Deployment via GitHub Actions:**
 1. Go to **Actions** tab in GitHub
 2. Select "Deploy Lambda to AWS" workflow
 3. Click "Run workflow"
 4. Choose action and stack name
 5. Click "Run workflow"
+
+**Manual Deployment via Script:**
+```bash
+# Run the deployment script
+./deploy.sh [STACK_NAME] [FUNCTION_NAME] [AWS_REGION]
+
+# Example with default values
+./deploy.sh
+
+# Example with custom values
+./deploy.sh MyStack MyFunction us-west-2
+```
 
 ## 🐍 Hello World Lambda Function
 

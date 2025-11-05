@@ -14,9 +14,6 @@ Parameters:
       - 'true'
       - 'false'
 
-Conditions:
-  ShouldDeleteLogGroup: !Equals [!Ref DeleteLogGroup, 'true']
-
 Resources:
   # This is a custom resource that will trigger deletion
   # In practice, you would delete the stack that created the Lambda
