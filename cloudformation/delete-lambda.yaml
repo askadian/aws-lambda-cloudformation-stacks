@@ -1,0 +1,114 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation template to delete/cleanup Lambda function resources'
+
+Parameters:
+  FunctionName:
+    Type: String
+    Description: Name of the Lambda function to delete
+
+  DeleteLogGroup:
+    Type: String
+    Description: Whether to delete the CloudWatch log group
+    Default: 'true'
+    AllowedValues:
+      - 'true'
+      - 'false'
+
+Conditions:
+  ShouldDeleteLogGroup: !Equals [!Ref DeleteLogGroup, 'true']
+
+Resources:
+  # This is a custom resource that will trigger deletion
+  # In practice, you would delete the stack that created the Lambda
+  # This template serves as a reference for what needs to be cleaned up
+
+  CleanupCustomResource:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken: !GetAtt CleanupFunction.Arn
+      FunctionName: !Ref FunctionName
+      DeleteLogGroup: !Ref DeleteLogGroup
+
+  CleanupFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: LambdaCleanupPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:DeleteFunction
+                  - lambda:GetFunction
+                  - iam:DeleteRole
+                  - iam:DeleteRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:GetRole
+                  - logs:DeleteLogGroup
+                  - logs:DescribeLogGroups
+                Resource: '*'
+
+  CleanupFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.11
+      Handler: index.handler
+      Role: !GetAtt CleanupFunctionRole.Arn
+      Timeout: 60
+      Code:
+        ZipFile: |
+          import boto3
+          import cfnresponse
+          import logging
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          lambda_client = boto3.client('lambda')
+          iam_client = boto3.client('iam')
+          logs_client = boto3.client('logs')
+
+          def handler(event, context):
+              logger.info(f'Event: {event}')
+
+              try:
+                  request_type = event['RequestType']
+                  function_name = event['ResourceProperties']['FunctionName']
+                  delete_log_group = event['ResourceProperties']['DeleteLogGroup'] == 'true'
+
+                  if request_type == 'Delete':
+                      # Delete Lambda function
+                      try:
+                          lambda_client.delete_function(FunctionName=function_name)
+                          logger.info(f'Deleted Lambda function: {function_name}')
+                      except lambda_client.exceptions.ResourceNotFoundException:
+                          logger.info(f'Lambda function {function_name} not found')
+
+                      # Delete CloudWatch log group
+                      if delete_log_group:
+                          log_group_name = f'/aws/lambda/{function_name}'
+                          try:
+                              logs_client.delete_log_group(logGroupName=log_group_name)
+                              logger.info(f'Deleted log group: {log_group_name}')
+                          except logs_client.exceptions.ResourceNotFoundException:
+                              logger.info(f'Log group {log_group_name} not found')
+
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+              except Exception as e:
+                  logger.error(f'Error: {str(e)}')
+                  cfnresponse.send(event, context, cfnresponse.FAILED, {})
+
+Outputs:
+  CleanupStatus:
+    Description: Status of the cleanup operation
+    Value: !Ref CleanupCustomResource

@@ -1,0 +1,3 @@
+# Lambda Function Requirements
+# Add any additional Python dependencies here
+boto3>=1.28.0
