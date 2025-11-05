@@ -4,8 +4,11 @@ Description: 'Hello World Lambda function that reads from S3 bucket'
 Parameters:
   S3BucketName:
     Type: String
-    Description: Name of the S3 bucket to read from
-    Default: ''
+    Description: Name of the S3 bucket to read from (required)
+    MinLength: 3
+    MaxLength: 63
+    AllowedPattern: '^[a-z0-9][a-z0-9.-]*[a-z0-9]$'
+    ConstraintDescription: Must be a valid S3 bucket name (3-63 chars, lowercase letters, numbers, dots, and hyphens)
 
 Resources:
   # IAM Role for Lambda function
@@ -56,7 +59,7 @@ Resources:
                   return {
                       'statusCode': 400,
                       'body': json.dumps({
-                          'message': 'Error: No bucket name provided.',
+                          'message': 'Error: No bucket name provided. Please specify bucket_name in event or S3_BUCKET_NAME environment variable.',
                           'hello': 'world'
                       })
                   }
